@@ -100,6 +100,46 @@ func writeTo(writer CSVWriter, in interface{}, omitHeaders bool) error {
 	return writer.Error()
 }
 
+func writeToOne(writer CSVWriter, in interface{}, omitHeaders bool) error {
+	inValue := reflect.ValueOf(in) // Get the concrete type (not pointer) (Slice<?> or Array<?>)
+	inInnerType := inValue.Type()
+
+	inInnerWasPointer := false
+	if inValue.Kind() == reflect.Ptr {
+		inInnerWasPointer = true
+		inInnerType = inValue.Elem().Type()
+	}
+
+	if err := ensureInInnerType(inInnerType); err != nil {
+		return err
+	}
+	inInnerStructInfo := getStructInfo(inInnerType) // Get the inner struct info to get CSV annotations
+	csvHeadersLabels := make([]string, len(inInnerStructInfo.Fields))
+	for i, fieldInfo := range inInnerStructInfo.Fields { // Used to write the header (first line) in CSV
+		csvHeadersLabels[i] = fieldInfo.getFirstKey()
+	}
+	if !omitHeaders {
+		if err := writer.Write(csvHeadersLabels); err != nil {
+			return err
+		}
+	}
+
+	for j, fieldInfo := range inInnerStructInfo.Fields {
+		csvHeadersLabels[j] = ""
+		inInnerFieldValue, err := getInnerField(inValue, inInnerWasPointer, fieldInfo.IndexChain) // Get the correct field header <-> position
+		if err != nil {
+			return err
+		}
+		csvHeadersLabels[j] = inInnerFieldValue
+	}
+	if err := writer.Write(csvHeadersLabels); err != nil {
+		return err
+	}
+
+	writer.Flush()
+	return writer.Error()
+}
+
 func ensureStructOrPtr(t reflect.Type) error {
 	switch t.Kind() {
 	case reflect.Struct:

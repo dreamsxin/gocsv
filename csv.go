@@ -127,6 +127,25 @@ func MarshalString(in interface{}) (out string, err error) {
 	return bufferString.String(), nil
 }
 
+// MarshalString returns the CSV string from the interface.
+func MarshalStringWithoutHeaders(in interface{}) (out string, err error) {
+	bufferString := bytes.NewBufferString(out)
+	if err := MarshalWithoutHeaders(in, bufferString); err != nil {
+		return "", err
+	}
+	return bufferString.String(), nil
+}
+
+// MarshalString returns the CSV string from the interface.
+func MarshalStringOne(in interface{}, omitHeaders bool) (out string, err error) {
+	bufferString := bytes.NewBufferString(out)
+	writer := getCSVWriter(bufferString)
+	if err := writeToOne(writer, in, omitHeaders); err != nil {
+		return "", err
+	}
+	return bufferString.String(), nil
+}
+
 // MarshalBytes returns the CSV bytes from the interface.
 func MarshalBytes(in interface{}) (out []byte, err error) {
 	bufferString := bytes.NewBuffer(out)
