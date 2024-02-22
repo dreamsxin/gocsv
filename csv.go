@@ -118,6 +118,11 @@ func MarshalFile(in interface{}, file *os.File) (err error) {
 	return Marshal(in, file)
 }
 
+// MarshalFile saves the interface as CSV in the file.
+func MarshalFileWithoutHeaders(in interface{}, file *os.File) (err error) {
+	return MarshalWithoutHeaders(in, file)
+}
+
 // MarshalString returns the CSV string from the interface.
 func MarshalString(in interface{}) (out string, err error) {
 	bufferString := bytes.NewBufferString(out)
@@ -380,7 +385,7 @@ func UnmarshalToCallbackWithError(in io.Reader, f interface{}) error {
 		}
 		v, notClosed := c.Recv()
 		if !notClosed || v.Interface() == nil {
-			if err := <- cerr; err != nil {
+			if err := <-cerr; err != nil {
 				fErr = err
 			}
 			break

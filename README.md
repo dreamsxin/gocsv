@@ -38,7 +38,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gocarina/gocsv"
+	"github.com/dreamsxin/gocsv"
 )
 
 type Client struct { // Our example struct, you can use "-" to ignore a field
@@ -73,12 +73,15 @@ func main() {
 	clients = append(clients, &Client{Id: "14", Name: "James", Age: "32"})
 	clients = append(clients, &Client{Id: "15", Name: "Danny"})
 	csvContent, err := gocsv.MarshalString(&clients) // Get all clients as CSV string
+	
 	//err = gocsv.MarshalFile(&clients, clientsFile) // Use this to save the CSV back to the file
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(csvContent) // Display all clients as CSV string
 
+	csvContent, _ := gocsv.MarshalStringWithoutHeaders(&clients) // Get all clients as CSV string
+	fmt.Println(csvContent)
 }
 
 ```
