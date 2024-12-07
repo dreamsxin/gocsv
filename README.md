@@ -11,7 +11,7 @@ API and techniques inspired from https://godoc.org/gopkg.in/mgo.v2
 Installation
 =====
 
-```go get -u github.com/gocarina/gocsv```
+```go get -u github.com/dreamsxin/gocsv```
 
 Full example
 =====
@@ -169,4 +169,27 @@ func main() {
         ...
 }
 
+```
+
+Parses the CSV from the reader and send each value in the chan c
+---
+```go
+func main() {
+	csvfile, err := os.OpenFile("clients.csv", os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	defer csvfile.Close()
+
+	c := make(chan Client, 1)
+
+	go func() {
+		for ext := range c {
+			log.Println(ext)
+		}
+	}()
+	if err := gocsv.UnmarshalToChan(csvfile, c); err != nil { // Load clients from file
+		panic(err)
+	}
+}
 ```
