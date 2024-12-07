@@ -48,6 +48,7 @@ e,BAD_INPUT,b`)
 	if err == nil {
 		t.Fatalf("Expected error from bad input, got: %+v", samples)
 	}
+
 	switch actualErr := err.(type) {
 	case *csv.ParseError:
 		if actualErr.Line != 3 {
@@ -58,6 +59,17 @@ e,BAD_INPUT,b`)
 		}
 	default:
 		t.Fatalf("incorrect error type: %T", err)
+	}
+
+	b = bytes.NewBufferString(`foo,1.0,baz`)
+	d = newSimpleDecoderFromReader(b)
+	samples = []Sample{}
+	if err := readTo(d, &samples, Config{SkipHeader: true, Headers: []string{"foo", "Quux", "Baz"}}); err != nil {
+		t.Fatalf("Expected error from bad input, got: %+v", samples)
+	}
+	expected = Sample{Foo: "foo", Baz: "baz", Frop: 1.0}
+	if !reflect.DeepEqual(expected, samples[0]) {
+		t.Fatalf("expected second sample %v, got %v", expected, samples[0])
 	}
 
 }

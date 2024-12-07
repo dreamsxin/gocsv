@@ -41,6 +41,7 @@ func newSimpleDecoderFromReader(r io.Reader) SimpleDecoder {
 var (
 	ErrEmptyCSVFile = errors.New("empty csv file given")
 	ErrNoStructTags = errors.New("no csv struct tags found")
+	ErrNoHeaders    = errors.New("no csv headers")
 )
 
 // NewSimpleDecoderFromCSVReader creates a SimpleDecoder, which may be passed
@@ -140,11 +141,15 @@ func convertTo(file *multipart.File) io.Reader {
 	return io.Reader(*file)
 }
 
-func readTo(decoder Decoder, out interface{}) error {
-	return readToWithErrorHandler(decoder, nil, out)
+func readTo(decoder Decoder, out interface{}, cfgs ...Config) error {
+	return readToWithErrorHandler(decoder, nil, out, cfgs...)
 }
 
-func readToWithErrorHandler(decoder Decoder, errHandler ErrorHandler, out interface{}) error {
+func readToWithErrorHandler(decoder Decoder, errHandler ErrorHandler, out interface{}, cfgs ...Config) error {
+	cfg := Config{}
+	if len(cfgs) > 0 {
+		cfg = cfgs[0]
+	}
 	outValue, outType := getConcreteReflectValueAndType(out) // Get the concrete type (not pointer) (Slice<?> or Array<?>)
 	if err := ensureOutType(outType); err != nil {
 		return err
@@ -160,16 +165,27 @@ func readToWithErrorHandler(decoder Decoder, errHandler ErrorHandler, out interf
 	if len(csvRows) == 0 {
 		return ErrEmptyCSVFile
 	}
-	if err := ensureOutCapacity(&outValue, len(csvRows)); err != nil { // Ensure the container is big enough to hold the CSV content
-		return err
+
+	headers := cfg.Headers
+	body := csvRows
+	if cfg.SkipHeader {
+		if len(headers) == 0 {
+			return ErrNoHeaders
+		}
+		if err := ensureOutCapacity(&outValue, len(csvRows)+1); err != nil { // Ensure the container is big enough to hold the CSV content
+			return err
+		}
+	} else {
+		if err := ensureOutCapacity(&outValue, len(csvRows)); err != nil { // Ensure the container is big enough to hold the CSV content
+			return err
+		}
+		headers = normalizeHeaders(csvRows[0])
+		body = csvRows[1:]
 	}
 	outInnerStructInfo := getStructInfo(outInnerType) // Get the inner struct info to get CSV annotations
 	if len(outInnerStructInfo.Fields) == 0 {
 		return ErrNoStructTags
 	}
-
-	headers := normalizeHeaders(csvRows[0])
-	body := csvRows[1:]
 
 	csvHeadersLabels := make(map[int]*fieldInfo, len(outInnerStructInfo.Fields)) // Used to store the correspondance header <-> position in CSV
 

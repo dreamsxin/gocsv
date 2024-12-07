@@ -200,38 +200,38 @@ func MarshalCSVWithoutHeaders(in interface{}, out CSVWriter) (err error) {
 // Unmarshal functions
 
 // UnmarshalFile parses the CSV from the file in the interface.
-func UnmarshalFile(in *os.File, out interface{}) error {
-	return Unmarshal(in, out)
+func UnmarshalFile(in *os.File, out interface{}, cfgs ...Config) error {
+	return Unmarshal(in, out, cfgs...)
 }
 
 // UnmarshalMultipartFile parses the CSV from the multipart file in the interface.
-func UnmarshalMultipartFile(in *multipart.File, out interface{}) error {
-	return Unmarshal(convertTo(in), out)
+func UnmarshalMultipartFile(in *multipart.File, out interface{}, cfgs ...Config) error {
+	return Unmarshal(convertTo(in), out, cfgs...)
 }
 
 // UnmarshalFileWithErrorHandler parses the CSV from the file in the interface.
-func UnmarshalFileWithErrorHandler(in *os.File, errHandler ErrorHandler, out interface{}) error {
-	return UnmarshalWithErrorHandler(in, errHandler, out)
+func UnmarshalFileWithErrorHandler(in *os.File, errHandler ErrorHandler, out interface{}, cfgs ...Config) error {
+	return UnmarshalWithErrorHandler(in, errHandler, out, cfgs...)
 }
 
 // UnmarshalString parses the CSV from the string in the interface.
-func UnmarshalString(in string, out interface{}) error {
-	return Unmarshal(strings.NewReader(in), out)
+func UnmarshalString(in string, out interface{}, cfgs ...Config) error {
+	return Unmarshal(strings.NewReader(in), out, cfgs...)
 }
 
 // UnmarshalBytes parses the CSV from the bytes in the interface.
-func UnmarshalBytes(in []byte, out interface{}) error {
-	return Unmarshal(bytes.NewReader(in), out)
+func UnmarshalBytes(in []byte, out interface{}, cfgs ...Config) error {
+	return Unmarshal(bytes.NewReader(in), out, cfgs...)
 }
 
 // Unmarshal parses the CSV from the reader in the interface.
-func Unmarshal(in io.Reader, out interface{}) error {
-	return readTo(newSimpleDecoderFromReader(in), out)
+func Unmarshal(in io.Reader, out interface{}, cfgs ...Config) error {
+	return readTo(newSimpleDecoderFromReader(in), out, cfgs...)
 }
 
 // Unmarshal parses the CSV from the reader in the interface.
-func UnmarshalWithErrorHandler(in io.Reader, errHandle ErrorHandler, out interface{}) error {
-	return readToWithErrorHandler(newSimpleDecoderFromReader(in), errHandle, out)
+func UnmarshalWithErrorHandler(in io.Reader, errHandle ErrorHandler, out interface{}, cfgs ...Config) error {
+	return readToWithErrorHandler(newSimpleDecoderFromReader(in), errHandle, out, cfgs...)
 }
 
 // UnmarshalWithoutHeaders parses the CSV from the reader in the interface.
@@ -245,22 +245,31 @@ func UnmarshalCSVWithoutHeaders(in CSVReader, out interface{}) error {
 }
 
 // UnmarshalDecoder parses the CSV from the decoder in the interface
-func UnmarshalDecoder(in Decoder, out interface{}) error {
-	return readTo(in, out)
+func UnmarshalDecoder(in Decoder, out interface{}, cfgs ...Config) error {
+	return readTo(in, out, cfgs...)
 }
 
 // UnmarshalCSV parses the CSV from the reader in the interface.
-func UnmarshalCSV(in CSVReader, out interface{}) error {
-	return readTo(csvDecoder{in}, out)
+func UnmarshalCSV(in CSVReader, out interface{}, cfgs ...Config) error {
+	return readTo(csvDecoder{in}, out, cfgs...)
 }
 
 // UnmarshalCSVToMap parses a CSV of 2 columns into a map.
-func UnmarshalCSVToMap(in CSVReader, out interface{}) error {
-	decoder := NewSimpleDecoderFromCSVReader(in)
-	header, err := decoder.GetCSVRow()
-	if err != nil {
-		return err
+func UnmarshalCSVToMap(in CSVReader, out interface{}, cfgs ...Config) (err error) {
+	cfg := Config{}
+	if len(cfgs) > 0 {
+		cfg = cfgs[0]
 	}
+	decoder := NewSimpleDecoderFromCSVReader(in)
+
+	header := cfg.Headers
+	if !cfg.SkipHeader {
+		header, err = decoder.GetCSVRow()
+		if err != nil {
+			return err
+		}
+	}
+
 	if len(header) != 2 {
 		return fmt.Errorf("maps can only be created for csv of two columns")
 	}
@@ -279,6 +288,10 @@ func UnmarshalCSVToMap(in CSVReader, out interface{}) error {
 			break
 		} else if err != nil {
 			return err
+		}
+
+		if len(line) != 2 {
+			return fmt.Errorf("maps can only be created for csv of two columns")
 		}
 		if err := setField(key, line[0], false); err != nil {
 			return err
