@@ -15,7 +15,7 @@ type encoder struct {
 	out io.Writer
 }
 
-func newEncoder(out io.Writer) *encoder {
+func NewEncoder(out io.Writer) *encoder {
 	return &encoder{out}
 }
 
